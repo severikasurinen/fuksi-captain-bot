@@ -1,0 +1,7 @@
+python-telegram-bot[job-queue]==20.2
+urllib3==1.26.15
+cffi==1.15.1
+python-Levenshtein==0.21.0
+requests==2.31.0
+beautifulsoup4==4.12.2
+schedule==1.2.0
