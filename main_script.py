@@ -52,7 +52,8 @@ def get_chat_ids():
 
 def get_queue_id():
     global queue_id
-    return queue_id := queue_id + 1
+    queue_id += 1
+    return queue_id
 
 
 def next_file_name():
@@ -203,7 +204,8 @@ async def start_command(update, context):
 
     chat_ids = get_chat_ids()
     if update.message.chat.id not in chat_ids:
-        await update.message.reply_text(strings.START_MSG[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.START_MSG[config.LANGUAGE], parse_mode='HTML')))
         print("New user! :)")
         chat_ids.append(update.message.chat.id)
 
@@ -212,7 +214,8 @@ async def start_command(update, context):
             for chat_id in chat_ids:
                 writer.writerow([str(chat_id)])
     else:
-        await update.message.reply_text(strings.ALREADY_USER[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.ALREADY_USER[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def exit_command(update, context):
@@ -220,7 +223,8 @@ async def exit_command(update, context):
     command_count['exit'] = command_count['exit'] + 1
 
     if not is_user(update.message.chat.id):
-        await update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')))
         return
 
     print("Lost a user! :(")
@@ -231,7 +235,8 @@ async def exit_command(update, context):
         for chat_id in chat_ids:
             if chat_id != update.message.chat.id:
                 writer.writerow([str(chat_id)])
-    await update.message.reply_text(strings.USER_DELETED[config.LANGUAGE], parse_mode='HTML')
+    request_queue.put((4, get_queue_id(), update.message.chat.id,
+                       lambda: update.message.reply_text(strings.USER_DELETED[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def help_command(update, context):
@@ -239,13 +244,15 @@ async def help_command(update, context):
     command_count['help'] = command_count['help'] + 1
 
     if not is_user(update.message.chat.id):
-        await update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')))
         return
 
     help_msg = strings.HELP_MSG[config.LANGUAGE]
     if is_moderator(update.message.chat.id):
         help_msg += strings.HELP_MSG_ADMIN
-    await update.message.reply_text(help_msg, parse_mode='HTML')
+    request_queue.put((4, get_queue_id(), update.message.chat.id,
+                       lambda: update.message.reply_text(help_msg, parse_mode='HTML')))
 
 
 async def info_command(update, context):
@@ -253,11 +260,12 @@ async def info_command(update, context):
     command_count['info'] = command_count['info'] + 1
 
     if not is_user(update.message.chat.id):
-        await update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')))
         return
-
-    await update.message.reply_text(strings.INFO_MSG[config.LANGUAGE], parse_mode='HTML',
-                                    disable_web_page_preview=True)
+    request_queue.put((4, get_queue_id(), update.message.chat.id,
+                       lambda: update.message.reply_text(strings.INFO_MSG[config.LANGUAGE], parse_mode='HTML',
+                                                         disable_web_page_preview=True)))
 
 
 async def fact_command(update, context):
@@ -265,7 +273,8 @@ async def fact_command(update, context):
     command_count['fact'] = command_count['fact'] + 1
 
     if not is_user(update.message.chat.id):
-        await update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')))
         return
 
     cur_week = datetime.date.today().isocalendar()[1]  # Current calendar week
@@ -275,15 +284,21 @@ async def fact_command(update, context):
         for line in lines:
             if cur_week == i + 1:
                 if len(line) > 0:
-                    await update.message.reply_text(strings.FACT_PREFIX[config.LANGUAGE] + str(cur_week)
-                                                    + strings.FACT_SUFFIX[config.LANGUAGE] + line,
-                                                    parse_mode='HTML')
+                    request_queue.put((4, get_queue_id(), update.message.chat.id,
+                                       lambda: update.message.reply_text(strings.FACT_PREFIX[config.LANGUAGE]
+                                                                         + str(cur_week)
+                                                                         + strings.FACT_SUFFIX[config.LANGUAGE] + line,
+                                                                         parse_mode='HTML')))
                     return
                 else:
-                    await update.message.reply_text(strings.FACT_NOT_FOUND[config.LANGUAGE], parse_mode='HTML')
+                    request_queue.put((4, get_queue_id(), update.message.chat.id,
+                                       lambda: update.message.reply_text(strings.FACT_NOT_FOUND[config.LANGUAGE],
+                                                                         parse_mode='HTML')))
                     return
             i += 1
-        await update.message.reply_text(strings.FACT_NOT_FOUND[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.FACT_NOT_FOUND[config.LANGUAGE],
+                                                             parse_mode='HTML')))
 
 
 async def song_command(update, context):
@@ -291,7 +306,8 @@ async def song_command(update, context):
     command_count['song'] = command_count['song'] + 1
 
     if not is_user(update.message.chat.id):
-        await update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')))
         return
 
     if update.message.text:
@@ -306,10 +322,13 @@ async def song_command(update, context):
             i += 1
 
         reply_markup = InlineKeyboardMarkup(inline_keyboard)
-
-        await update.message.reply_text(strings.WHICH_SONG[config.LANGUAGE], reply_markup=reply_markup)
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.WHICH_SONG[config.LANGUAGE],
+                                                             reply_markup=reply_markup)))
     else:
-        await update.message.reply_text(strings.INVALID_COMMAND[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.INVALID_COMMAND[config.LANGUAGE],
+                                                             parse_mode='HTML')))
 
 
 async def evaluate_song(update):
@@ -322,11 +341,14 @@ async def evaluate_song(update):
         song_match = round((1 - Levenshtein.distance(clean_input(strings.LYRICS[song_name]), msg)
                             / len(clean_input(strings.LYRICS[song_name]))) * 100)
         if song_match < 100:
+            # TODO: Use request queue
             await update.message.reply_text(strings.LYRICS[song_name], parse_mode='HTML')
 
-        await update.message.reply_text(strings.MATCH_TEXT[config.LANGUAGE] + str(song_match) + ' %',
-                                        parse_mode='HTML', disable_web_page_preview=True)
+        # TODO: Use request queue
+        await update.message.reply_text(strings.MATCH_TEXT[config.LANGUAGE] + str(song_match) + ' %', parse_mode='HTML',
+                                        disable_web_page_preview=True)
     else:
+        # TODO: Use request queue
         await update.message.reply_text(strings.UNSUPPORTED_FILE_FORMAT[config.LANGUAGE], parse_mode='HTML')
 
 
@@ -336,7 +358,7 @@ async def previous_command(update, context):
     command_count['previous'] = command_count['previous'] + 1
 
     if not is_user(update.message.chat.id):
-        request_queue.put((4, queue_id := queue_id + 1, update.message.chat.id,
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
                             lambda: update.message.reply_text(strings.NOT_USER[config.LANGUAGE], parse_mode='HTML')))
         return
 
@@ -348,21 +370,26 @@ async def previous_command(update, context):
             lines = lines[1:]
         msg = '\n'.join(lines)
         if not broadcast_file:
-            await update.message.reply_text(msg, disable_web_page_preview=True, parse_mode='HTML')
+            request_queue.put((4, get_queue_id(), update.message.chat.id,
+                               lambda l_msg=msg: update.message.reply_text(l_msg, disable_web_page_preview=True,
+                                                                 parse_mode='HTML')))
         elif broadcast_file.split('.')[1] == 'jpg':
-            request_queue.put((4, queue_id := queue_id + 1, update.message.chat.id,
-                                lambda: context.bot.send_photo(update.message.chat.id, open(broadcast_file, 'rb'),
-                                                               caption=msg, parse_mode='HTML')))
+            request_queue.put((4, get_queue_id(), update.message.chat.id,
+                                lambda l_msg=msg, l_file=broadcast_file:
+                                context.bot.send_photo(update.message.chat.id, open(l_file, 'rb'),
+                                                               caption=l_msg, parse_mode='HTML')))
         elif broadcast_file.split('.')[1] == 'mp4':
-            request_queue.put((4, queue_id := queue_id + 1, update.message.chat.id,
-                                lambda: context.bot.send_video(update.message.chat.id, open(broadcast_file, 'rb'),
-                                                               caption=msg, parse_mode='HTML')))
+            request_queue.put((4, get_queue_id(), update.message.chat.id,
+                                lambda l_msg=msg, l_file=broadcast_file:
+                                context.bot.send_video(update.message.chat.id, open(l_file, 'rb'),
+                                                               caption=l_msg, parse_mode='HTML')))
         elif broadcast_file.split('.')[1] == 'gif':
-            request_queue.put((4, queue_id := queue_id + 1, update.message.chat.id,
-                                lambda: context.bot.send_animation(update.message.chat.id, open(broadcast_file, 'rb'),
-                                                                   caption=msg, parse_mode='HTML')))
+            request_queue.put((4, get_queue_id(), update.message.chat.id,
+                                lambda l_msg=msg, l_file=broadcast_file:
+                                context.bot.send_animation(update.message.chat.id, open(l_file, 'rb'),
+                                                                   caption=l_msg, parse_mode='HTML')))
         else:
-            request_queue.put((4, queue_id := queue_id + 1, update.message.chat.id,
+            request_queue.put((4, get_queue_id(), update.message.chat.id,
                                 lambda: update.message.reply_text(strings.UNSUPPORTED_FILE_FORMAT[config.LANGUAGE],
                                                                   parse_mode='HTML')))
 
@@ -380,16 +407,19 @@ async def send_broadcast(update, context, is_temp=False):
         total_sent = 0
         if not (update.message.photo or update.message.video or update.message.animation):
             if len(update.message.text) <= cmd_length:
-                await update.message.reply_text(strings.INVALID_COMMAND[config.LANGUAGE], parse_mode='HTML')
+                request_queue.put((2, get_queue_id(), update.message.chat.id,
+                                   lambda: update.message.reply_text(strings.INVALID_COMMAND[config.LANGUAGE],
+                                                                     parse_mode='HTML')))
                 return
 
             # Sending text
             msg = update.message.text_html[cmd_length:]
             previous_broadcast = []
             for chat_id in get_chat_ids():
-                request_queue.put((1, queue_id := queue_id + 1, chat_id,
-                                    lambda: context.bot.send_message(chat_id, msg, disable_web_page_preview=True,
-                                                                     parse_mode='HTML')))
+                request_queue.put((1, get_queue_id(), chat_id,
+                                    lambda l_id=chat_id, l_msg=msg:
+                                    context.bot.send_message(l_id, l_msg, disable_web_page_preview=True,
+                                                             parse_mode='HTML')))
         else:
             file_name = next_file_name()
             msg = update.message.caption_html[cmd_length:]
@@ -402,10 +432,11 @@ async def send_broadcast(update, context, is_temp=False):
                     new_file = await context.bot.get_file(file_id)
                     await new_file.download_to_drive(config.BROADCAST_FILES_DIR + '/' + file_name)
 
-                    request_queue.put((1, queue_id := queue_id + 1, chat_id,
-                                        lambda: context.bot.send_photo(chat_id, open(config.BROADCAST_FILES_DIR + '/'
-                                                                                     + file_name, 'rb'),
-                                                                       caption=msg, parse_mode='HTML')))
+                    request_queue.put((1, get_queue_id(), chat_id,
+                                        lambda l_id=chat_id, l_file=file_name, l_msg=msg:
+                                        context.bot.send_photo(l_id, open(config.BROADCAST_FILES_DIR + '/' + l_file,
+                                                                          'rb'),
+                                                               caption=l_msg, parse_mode='HTML')))
             elif update.message.video:
                 # Sending video
                 file_name += '.mp4'
@@ -414,10 +445,11 @@ async def send_broadcast(update, context, is_temp=False):
                     new_file = await context.bot.get_file(file_id)
                     await new_file.download_to_drive(config.BROADCAST_FILES_DIR + '/' + file_name)
 
-                    request_queue.put((1, queue_id := queue_id + 1, chat_id,
-                                        lambda: context.bot.send_video(chat_id, open(config.BROADCAST_FILES_DIR + '/'
-                                                                                     + file_name, 'rb'),
-                                                                       caption=msg, parse_mode='HTML')))
+                    request_queue.put((1, get_queue_id(), chat_id,
+                                        lambda l_id=chat_id, l_file=file_name, l_msg=msg:
+                                        context.bot.send_video(l_id, open(config.BROADCAST_FILES_DIR + '/'
+                                                                                     + l_file, 'rb'),
+                                                                       caption=l_msg, parse_mode='HTML')))
             else:
                 # Sending animation
                 file_name += '.gif'
@@ -426,19 +458,20 @@ async def send_broadcast(update, context, is_temp=False):
                     new_file = await context.bot.get_file(file_id)
                     await new_file.download_to_drive(config.BROADCAST_FILES_DIR + '/' + file_name)
 
-                    request_queue.put((1, queue_id := queue_id + 1, chat_id,
-                                        lambda: context.bot.send_animation(chat_id, open(config.BROADCAST_FILES_DIR
-                                                                                         + '/' + file_name, 'rb'),
-                                                                           caption=msg, parse_mode='HTML')))
+                    request_queue.put((1, get_queue_id(), chat_id,
+                                        lambda l_id=chat_id, l_file=file_name, l_msg=msg:
+                                        context.bot.send_animation(l_id, open(config.BROADCAST_FILES_DIR + '/' + l_file,
+                                                                              'rb'),
+                                                                   caption=l_msg, parse_mode='HTML')))
             previous_broadcast = []
 
         if not is_temp:
             save_broadcasts(get_broadcasts(), msg, file_name)
 
-        await update.message.reply_text("Broadcast sent to " + str(total_sent) + " users.", parse_mode='HTML')
         print("Broadcast message.")
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def broadcast_command(update, context):
@@ -456,8 +489,8 @@ async def broadcast_forward(bot, from_chat, original_id, msg_text=None, file_nam
     global previous_broadcast, queue_id
     previous_broadcast = []
     for chat_id in get_chat_ids():
-        request_queue.put((1, queue_id := queue_id + 1, chat_id,
-                            lambda: bot.forward_message(chat_id, from_chat, original_id)))
+        request_queue.put((1, get_queue_id(), chat_id,
+                            lambda l_id=chat_id: bot.forward_message(l_id, from_chat, original_id)))
     if msg_text:
         msg_text = '<b>Forwarded</b>\n-\n' + msg_text
     else:
@@ -479,12 +512,14 @@ async def edit_command(update, context):
     if is_moderator(update.message.chat.id):
         msg = update.message.text_html[cmd_length:]
         for message in previous_broadcast:
-            request_queue.put((2, queue_id := queue_id + 1, update.message.chat.id,
-                                lambda: context.bot.editMessageText(chat_id=message[0], message_id=message[1], text=msg,
-                                                                    disable_web_page_preview=True, parse_mode='HTML')))
+            request_queue.put((2, get_queue_id(), update.message.chat.id,
+                                lambda l_message=message, l_msg=msg:
+                                context.bot.editMessageText(chat_id=l_message[0], message_id=l_message[1], text=l_msg,
+                                                            disable_web_page_preview=True, parse_mode='HTML')))
         save_broadcasts(get_broadcasts(), msg, edit=True)
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def delete_command(update, context):
@@ -493,13 +528,14 @@ async def delete_command(update, context):
 
     if is_moderator(update.message.chat.id):
         for message in previous_broadcast:
-            request_queue.put((2, queue_id := queue_id + 1, update.message.chat.id,
-                                lambda: context.bot.delete_message(message[0], message[1])))
+            request_queue.put((2, get_queue_id(), update.message.chat.id,
+                                lambda l_message=message: context.bot.delete_message(l_message[0], l_message[1])))
 
         save_broadcasts(get_broadcasts()[:-1])
         previous_broadcast = []
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def forward_command(update, context):
@@ -507,7 +543,8 @@ async def forward_command(update, context):
     if is_moderator(update.message.chat.id):
         message_handling.forwarding_data = (update.message.chat.id, time.perf_counter(), False)
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def forward_temp_command(update, context):
@@ -515,15 +552,19 @@ async def forward_temp_command(update, context):
     if is_moderator(update.message.chat.id):
         message_handling.forwarding_data = (update.message.chat.id, time.perf_counter(), True)
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def users_command(update, context):
     """Admin command to get number of active users."""
     if is_moderator(update.message.chat.id):
-        await update.message.reply_text("Number of active users: " + str(len(get_chat_ids())), parse_mode='HTML')
+        request_queue.put((2, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text("Number of active users: " + str(len(get_chat_ids())),
+                                                             parse_mode='HTML')))
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def update_command(update, context):
@@ -535,7 +576,8 @@ async def update_command(update, context):
         subprocess.call("./update_bot.sh", shell=True)
         quit()
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def reboot_command(update, context):
@@ -546,7 +588,8 @@ async def reboot_command(update, context):
     if is_moderator(update.message.chat.id):
         subprocess.run(["sudo", "reboot"])
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def run_command(update, context):
@@ -559,7 +602,8 @@ async def run_command(update, context):
         # subprocess.run(["source", "env/bin/activate"], shell=True)
         # subprocess.run(["pip", "install", "-r", "requirements.txt"], shell=True)
     else:
-        await update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')
+        request_queue.put((4, get_queue_id(), update.message.chat.id,
+                           lambda: update.message.reply_text(strings.NOT_ADMIN[config.LANGUAGE], parse_mode='HTML')))
 
 
 async def error_handler(update, context):
@@ -580,8 +624,9 @@ async def error_handler(update, context):
 
     for admin_id in config.BOT_ADMINS:
         for chunk in [error_message[i:i + 4096] for i in range(0, len(error_message), 4096)]:
-            request_queue.put((2, queue_id := queue_id + 1, admin_id,
-                                lambda: context.bot.send_message(admin_id, chunk, disable_web_page_preview=True)))
+            request_queue.put((2, get_queue_id(), admin_id,
+                                lambda l_id=admin_id, l_chunk=chunk:
+                                context.bot.send_message(l_id, l_chunk, disable_web_page_preview=True)))
 
 
 async def weekly_reboot(context):
@@ -608,8 +653,8 @@ async def weekly_backup_message(context):
     global queue_id
 
     for admin_id in config.BOT_ADMINS:
-        request_queue.put((2, queue_id := queue_id + 1, admin_id,
-                            lambda: context.bot.send_message(chat_id=admin_id, text="Bot running...")))
+        request_queue.put((2, get_queue_id(), admin_id,
+                            lambda l_id=admin_id: context.bot.send_message(chat_id=l_id, text="Bot running...")))
 
 
 async def run_requests(context):
@@ -621,18 +666,16 @@ async def run_requests(context):
         first_data = request_queue.get()
         if (function_chats.get(first_data[2], 0) >= max_instant_requests_personal
                 or len(function_chats.keys()) >= max_instant_requests):
+            request_queue.put((0, first_data[1], first_data[2], lambda: first_data[3]()))
             break
         function_chats[first_data[2]] = function_chats.get(first_data[2], 0) + 1
         try:
-            first_data[3]()
             sent = await first_data[3]()
             if first_data[0] == 1:  # Pin broadcast messages
                 await context.bot.pin_chat_message(sent.chat.id, sent.message_id, disable_notification=True)
                 previous_broadcast.append((sent.chat.id, sent.message_id))
                 broadcasts_sent += 1
                 print("Broadcast sent to", sent.chat.id)
-            if first_data[0] == 3:  # Add message to anonymous message dict
-                message_handling.add_message(sent.message_id, (sent.chat.id, sent.message_id))
         except:
             print("Function call", first_data, "unsuccessful.")
 
@@ -640,10 +683,11 @@ async def run_requests(context):
         queue_id = 0
         if broadcasts_sent > 0:
             for admin_id in config.BOT_ADMINS:
-                request_queue.put((2, queue_id := queue_id + 1, admin_id,
-                                    lambda: context.bot.send_message(admin_id, "Broadcast sent to "
-                                                                     + str(broadcasts_sent) + " users.",
-                                                                     disable_web_page_preview=True, parse_mode='HTML')))
+                request_queue.put((2, get_queue_id(), admin_id,
+                                    lambda l_id=admin_id: context.bot.send_message(l_id, "Broadcast sent to "
+                                                                                   + str(broadcasts_sent) + " users.",
+                                                                                   disable_web_page_preview=True,
+                                                                                   parse_mode='HTML')))
             broadcasts_sent = 0
 
 
@@ -667,7 +711,6 @@ def main():
     application.add_handler(CommandHandler('forward', forward_command))
     application.add_handler(CommandHandler('forward_temp', forward_temp_command))
     application.add_handler(CommandHandler('users', users_command))
-    application.add_handler(CommandHandler('fuksi', fuksi_command))
     application.add_handler(CommandHandler('update_bot', update_command))
     application.add_handler(CommandHandler('reboot_server', reboot_command))
     application.add_handler(CommandHandler('run', run_command))
@@ -681,7 +724,7 @@ def main():
     application.job_queue.run_daily(weekly_backup, time=datetime.time(4 - 2, 0, 0), days=[0], name="Weekly backup")
     application.job_queue.run_daily(weekly_backup_message, time=datetime.time(4 - 2, 5, 0), days=[0],
                                     name="Weekly backup message")
-    await application.job_queue.run_repeating(run_requests, interval=request_cooldown).run(application)
+    application.job_queue.run_repeating(run_requests, interval=request_cooldown)
 
     # application.add_error_handler(error_handler)   # TODO: Fix error handler to continue function
 

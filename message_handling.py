@@ -14,12 +14,6 @@ user_songs = {}
 forwarding_data = (-1, 0, False)
 
 
-def add_message(message_id, data):
-    global sent_messages
-
-    sent_messages[message_id] = data
-
-
 def clear_messages():
     global sent_messages
 
@@ -123,26 +117,24 @@ async def send_from_private(update, context):
                     if (msg.from_user.id in temp_users.keys() and temp_users[msg.from_user.id][2] == 'S' and
                             (datetime.datetime.now() - temp_users[msg.from_user.id][0]).seconds
                             / 60 < main_script.spam_cooldown):
-                        main_script.request_queue.put((4, main_script.get_queue_id(), msg.from_user.id,
-                                                        lambda: update.message.reply_text(strings.SPAM[config.LANGUAGE],
-                                                                                          parse_mode='HTML')))
+                        # TODO: Use request queue
+                        await update.message.reply_text(strings.SPAM[config.LANGUAGE], parse_mode='HTML')
                         return
                 else:
                     is_spam = False
 
-                main_script.request_queue.put((3, main_script.get_queue_id(), msg.from_user.id,
-                                                lambda: robust_send_message(context.bot, msg, config.MESSAGING_CHAT,
-                                                                            None,
+                #TODO: Use request queue
+                sent = await robust_send_message(context.bot, msg, config.MESSAGING_CHAT, None,
                                                                             main_script.add_temp_user(msg.from_user.id,
-                                                                                                      spam=is_spam))))
+                                                                                                      spam=is_spam))
+                sent_messages[sent.message_id] = (msg.chat.id, msg.message_id)
             else:
-                main_script.request_queue.put((3, main_script.get_queue_id(), msg.from_user.id,
-                                                lambda: context.bot.forward_message(config.MESSAGING_CHAT, msg.chat.id,
-                                                                                    msg.message_id)))
+                # TODO: Use request queue
+                sent = await context.bot.forward_message(config.MESSAGING_CHAT, msg.chat.id, msg.message_id)
+                sent_messages[sent.message_id] = (msg.chat.id, msg.message_id)
     else:
-        main_script.request_queue.put((4, main_script.get_queue_id(), msg.from_user.id,
-                                        lambda: update.message.reply_text(strings.INVALID_COMMAND[config.LANGUAGE],
-                                                                          parse_mode='HTML')))
+        # TODO: Use request queue
+        await update.message.reply_text(strings.INVALID_COMMAND[config.LANGUAGE], parse_mode='HTML')
 
 
 async def reply(update, context):
@@ -151,6 +143,5 @@ async def reply(update, context):
     msg_id = update.effective_message.reply_to_message.message_id
     if msg_id in sent_messages:
         org = sent_messages[msg_id]
-        main_script.request_queue.put((4, main_script.get_queue_id(), org[0],
-                                        lambda: robust_send_message(context.bot, update.effective_message,
-                                                                    org[0], org[1])))
+        # TODO: Use request queue
+        await robust_send_message(context.bot, update.effective_message, org[0], org[1])
